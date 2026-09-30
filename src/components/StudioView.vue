@@ -33,7 +33,7 @@ function togglePlay() {
 </script>
 
 <template>
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
     <section class="stage-sticky py-2 lg:py-0">
       <div class="stage-card mx-auto w-full max-w-[440px] p-4" :style="{ background: paper }">
         <BotAvatar

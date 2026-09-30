@@ -109,7 +109,7 @@ onUnmounted(stopCamera);
 </script>
 
 <template>
-  <div class="grid gap-6 lg:grid-cols-2">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     <section class="rounded-3xl border border-line bg-card p-4">
       <h2 class="font-serif text-3xl">Scan a code</h2>
       <p class="mt-2 text-sm text-muted">
