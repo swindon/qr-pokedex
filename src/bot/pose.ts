@@ -28,6 +28,36 @@ function heartWave(phase: number): number {
   return wrapPulse(phase, 0.16, 0.08) + wrapPulse(phase, 0.34, 0.055) * 0.7;
 }
 
+/** A thick arc. Positive smile drops the middle (a smile in SVG space); open fattens it into an O. */
+function mouthOutline(width: number, smile: number, open: number): Array<[number, number]> {
+  const half = 20 * Math.max(0.25, width);
+  const bow = smile * 16;
+  const thick = 2.6 + Math.max(0, open) * 14;
+  const steps = 14;
+  const upper: Array<[number, number]> = [];
+  const lower: Array<[number, number]> = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = -half + 2 * half * t;
+    const arch = Math.sin(Math.PI * t);
+    const y = bow * arch;
+    const dx = 2 * half;
+    const dy = bow * Math.PI * Math.cos(Math.PI * t);
+    const length = Math.hypot(dx, dy) || 1;
+    let nx = -dy / length;
+    let ny = dx / length;
+    if (ny < 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    const taper = 0.42 + 0.58 * arch;
+    const inset = (thick * taper) / 2;
+    upper.push([x - nx * inset, y - ny * inset]);
+    lower.push([x + nx * inset, y + ny * inset]);
+  }
+  return [...upper, ...lower.reverse()];
+}
+
 function fits(
   profile: number[],
   x: number,
@@ -264,9 +294,39 @@ export function renderFrame(profile: number[], anim: AnimSpec, time: number): Fr
     }
   }
 
+  let mouthSmile = anim.mouthSmile;
+  let mouthOpen = anim.mouthOpen + anim.mouthTalk * Math.abs(Math.sin(phase * TAU * 3));
+  if (anim.yawn) {
+    const yawn = Math.sin(phase * Math.PI);
+    mouthOpen = Math.max(mouthOpen, yawn);
+    mouthSmile *= 1 - yawn * 0.6;
+  }
+  if (anim.wake) mouthOpen *= 0.35 + 0.65 * phase;
+  if (anim.startle) mouthOpen = Math.max(mouthOpen, wrapPulse(phase, 0.18, 0.12) * 0.75);
+  if (anim.sleep > 0.85) mouthOpen *= 0.45;
+  mouthOpen = Math.max(0, Math.min(1.15, mouthOpen));
+
+  let mouthPoint = { x: gazeX * 5, y: 32 + gazeY * 4 + mouthSmile * 2 };
+  if (anim.orbit === 0) {
+    const margin = 8;
+    const fitted = containPair(mouthPoint, mouthPoint, adjusted, scaleX, scaleY, margin);
+    mouthPoint = { x: mouthPoint.x * fitted, y: mouthPoint.y * fitted };
+  }
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  const mouthPoints = mouthOutline(anim.mouthWidth, mouthSmile, mouthOpen).map(([x, y]) => {
+    const sx = (x + mouthPoint.x) * scaleX;
+    const sy = (y + mouthPoint.y) * scaleY;
+    return [sx * cos - sy * sin + originX, sx * sin + sy * cos + originY] as const;
+  });
+  const mouth = `M ${mouthPoints
+    .map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`)
+    .join(' L ')} Z`;
+
   return {
     path: radiiToPath(adjusted, scaleX, scaleY, rotation, originX, originY),
     eyes,
+    mouth,
     rings,
     sparks,
     metrics: {
@@ -278,6 +338,8 @@ export function renderFrame(profile: number[], anim: AnimSpec, time: number): Fr
       meanRadius: mean,
       eyeOpenL: openL,
       eyeOpenR: openR,
+      mouthSmile,
+      mouthOpen,
     },
   };
 }

@@ -57,6 +57,14 @@ export interface AnimSpec {
   sigh: number;
   zz: number;
   poster: number;
+  /** -1 frown, 0 flat, 1 smile. */
+  mouthSmile: number;
+  /** Width relative to the resting mouth. */
+  mouthWidth: number;
+  /** 0 is a thin line, 1 is a round open mouth. */
+  mouthOpen: number;
+  /** Extra openness that pulses through the loop. */
+  mouthTalk: number;
 }
 
 export interface ShapeDef {
@@ -147,21 +155,29 @@ export interface FrameMetrics {
   meanRadius: number;
   eyeOpenL: number;
   eyeOpenR: number;
+  mouthSmile: number;
+  mouthOpen: number;
 }
 
 export interface Frame {
   path: string;
   eyes: [EyeDraw, EyeDraw];
+  /** Mouth hole, in the same coordinates as the body path. */
+  mouth: string;
   rings: RingDraw[];
   sparks: SparkDraw[];
   metrics: FrameMetrics;
 }
 
-export interface Selection {
+/** What a QR code is allowed to restore. Motion is not part of it. */
+export interface Identity {
   shape: number;
   mode: FillMode;
   solid: number;
   gradient: number;
   texture: number;
+}
+
+export interface Selection extends Identity {
   anim: number;
 }
