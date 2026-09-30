@@ -16,42 +16,24 @@ const tabs = [
 ] as const;
 
 const activeTab = ref<(typeof tabs)[number]['id']>('shape');
-const { time, seek } = useClock(
+const { time } = useClock(
   computed(() => mote.playing),
   computed(() => mote.epoch),
 );
 
-const shownTime = computed(() => (mote.freezeAt === null ? time.value : mote.freezeAt));
 const anim = computed(() => ANIMATIONS[mote.anim] ?? ANIMATIONS[0]);
 const summary = computed(() => describeSelection(currentSelection()));
 const label = computed(() => `${anim.value.name}. ${summary.value}`);
 
 const paper = STAGE_PAPER;
 
-const frames = computed(() => [0.08, 0.24, 0.4, 0.56, 0.72, 0.88].map((step) => step * anim.value.duration));
-
 function togglePlay() {
-  if (mote.playing) {
-    mote.playing = false;
-    mote.freezeAt = time.value;
-    return;
-  }
-  if (mote.freezeAt !== null) {
-    seek(mote.freezeAt);
-    mote.freezeAt = null;
-  }
-  mote.playing = true;
-}
-
-function holdFrame(value: number) {
-  mote.playing = false;
-  mote.freezeAt = value;
-  seek(value);
+  mote.playing = !mote.playing;
 }
 </script>
 
 <template>
-  <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
     <section class="stage-sticky py-2 lg:py-0">
       <div class="stage-card mx-auto w-full max-w-[440px] p-4" :style="{ background: paper }">
         <BotAvatar
@@ -61,7 +43,7 @@ function holdFrame(value: number) {
           :gradient="mote.gradient"
           :texture="mote.texture"
           :anim="mote.anim"
-          :time="shownTime"
+          :time="time"
           :label="label"
         />
       </div>
@@ -74,29 +56,6 @@ function holdFrame(value: number) {
           </button>
           <button type="button" class="rounded-full bg-accent px-4 py-2 text-sm text-white" @click="mote.shareOpen = true">
             My QR
-          </button>
-        </div>
-        <p class="mt-4 text-xs tracking-wide text-muted uppercase">Frozen moments</p>
-        <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
-          <button
-            v-for="(frame, index) in frames"
-            :key="index"
-            type="button"
-            class="w-16 shrink-0 overflow-hidden rounded-xl border border-line"
-            :style="{ background: paper }"
-            :aria-label="`Show moment ${index + 1} of ${anim.name}`"
-            @click="holdFrame(frame)"
-          >
-            <BotAvatar
-              :shape="mote.shape"
-              :mode="mote.mode"
-              :solid="mote.solid"
-              :gradient="mote.gradient"
-              :texture="mote.texture"
-              :anim="mote.anim"
-              :time="frame"
-              :label="`${anim.name} moment ${index + 1}`"
-            />
           </button>
         </div>
       </div>

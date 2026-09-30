@@ -5,7 +5,7 @@ import { ANIMATIONS } from '../bot/animations';
 import { GRADIENTS, SOLIDS } from '../bot/palette';
 import { SHAPES } from '../bot/shapes';
 import { TEXTURES } from '../bot/textures';
-import type { Selection } from '../bot/types';
+import type { Identity, Selection } from '../bot/types';
 import { mapPayload, selectionToPayload } from './mapping';
 import { sha256Hex } from './sha256';
 
@@ -42,7 +42,7 @@ describe('QR identity', () => {
     expect(sha256Hex('abc')).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
   });
 
-  it('round-trips a shared payload to the same combination', () => {
+  it('round-trips a shared payload without an animation field', () => {
     const selection: Selection = {
       shape: SHAPES.length - 1,
       mode: 'gradient',
@@ -51,10 +51,21 @@ describe('QR identity', () => {
       texture: TEXTURES.length - 1,
       anim: ANIMATIONS.length - 4,
     };
+    const expected: Identity = {
+      shape: selection.shape,
+      mode: 'gradient',
+      solid: 0,
+      gradient: selection.gradient,
+      texture: selection.texture,
+    };
     const payload = selectionToPayload(selection);
+    expect(payload.split('|')).toHaveLength(5);
     expect(payload.startsWith('mote1|')).toBe(true);
-    expect(mapPayload(payload)).toEqual({ ...selection, solid: 0 });
-    expect(mapPayload(`  ${payload}  `)).toEqual({ ...selection, solid: 0 });
+    expect(payload).not.toContain(ANIMATIONS[selection.anim].id);
+    expect(mapPayload(payload)).toEqual(expected);
+    expect(mapPayload(`  ${payload}  `)).toEqual(expected);
+    const sameLook: Selection = { ...selection, anim: 0 };
+    expect(selectionToPayload(sameLook)).toBe(payload);
   });
 
   it('keeps solid selections exact, including a zero gradient slot', () => {
@@ -66,28 +77,43 @@ describe('QR identity', () => {
       texture: 4,
       anim: 20,
     };
-    expect(mapPayload(selectionToPayload(selection))).toEqual({ ...selection, gradient: 0 });
+    expect(mapPayload(selectionToPayload(selection))).toEqual({
+      shape: 12,
+      mode: 'solid',
+      solid: SOLIDS.length - 1,
+      gradient: 0,
+      texture: 4,
+    });
   });
 
-  it('maps an arbitrary payload deterministically', () => {
+  it('ignores a legacy animation field on older codes', () => {
+    const selection: Selection = { shape: 5, mode: 'solid', solid: 8, gradient: 1, texture: 2, anim: 11 };
+    const legacy = `${selectionToPayload(selection)}|${ANIMATIONS[selection.anim].id}`;
+    expect(legacy.split('|')).toHaveLength(6);
+    expect(mapPayload(legacy)).toEqual({ shape: 5, mode: 'solid', solid: 8, gradient: 0, texture: 2 });
+  });
+
+  it('maps an arbitrary payload to look only', () => {
     const first = mapPayload('visitor-badge-441');
     const second = mapPayload('visitor-badge-441');
     const other = mapPayload('visitor-badge-442');
     expect(second).toEqual(first);
     expect(other).not.toEqual(first);
+    expect(Object.keys(first).sort()).toEqual(['gradient', 'mode', 'shape', 'solid', 'texture']);
     expect(first.shape).toBeGreaterThanOrEqual(0);
     expect(first.shape).toBeLessThan(SHAPES.length);
-    expect(first.anim).toBeLessThan(ANIMATIONS.length);
+    expect(first.solid).toBeLessThan(SOLIDS.length);
+    expect(first.gradient).toBeLessThan(GRADIENTS.length);
     expect(first.texture).toBeLessThan(TEXTURES.length);
     expect(['solid', 'gradient']).toContain(first.mode);
   });
 
-  it('encodes a payload as a QR matrix and decodes it back to the same bot', () => {
+  it('encodes a payload as a QR matrix and decodes it back to the same look', () => {
     const selection: Selection = { shape: 5, mode: 'solid', solid: 8, gradient: 1, texture: 2, anim: 11 };
     const payload = selectionToPayload(selection);
     const image = rasterize(payload);
     const decoded = jsQR(image.data, image.width, image.height);
     expect(decoded?.data).toBe(payload);
-    expect(mapPayload(decoded?.data ?? '')).toEqual({ ...selection, gradient: 0 });
+    expect(mapPayload(decoded?.data ?? '')).toEqual({ shape: 5, mode: 'solid', solid: 8, gradient: 0, texture: 2 });
   });
 });

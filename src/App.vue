@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
-import GalleryView from './components/GalleryView.vue';
 import ScannerView from './components/ScannerView.vue';
 import ShareDialog from './components/ShareDialog.vue';
 import StudioView from './components/StudioView.vue';
@@ -10,7 +9,6 @@ import { go, initMote, mote } from './state/mote';
 const nav = [
   { id: 'studio', label: 'Studio' },
   { id: 'scanner', label: 'Scanner' },
-  { id: 'gallery', label: 'Gallery' },
 ] as const;
 
 function onKey(event: KeyboardEvent) {
@@ -49,8 +47,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey));
     </header>
     <main class="mx-auto max-w-6xl px-4 py-6">
       <StudioView v-if="mote.view === 'studio'" />
-      <ScannerView v-else-if="mote.view === 'scanner'" />
-      <GalleryView v-else />
+      <ScannerView v-else />
     </main>
     <footer class="mx-auto max-w-6xl px-4 pb-10 text-xs leading-5 text-muted">
       <p>

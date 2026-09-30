@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue';
 import { GRADIENTS, SOLIDS } from '../bot/palette';
-import { posterTime, sample } from '../bot/engine';
+import { sample } from '../bot/engine';
 import { TEXTURES } from '../bot/textures';
 import { contrastInk, mixHex, STAGE_PAPER } from '../bot/geometry';
 import type { GradientDef, GradientStop } from '../bot/types';
@@ -15,10 +15,9 @@ const props = withDefaults(
     texture: number;
     anim: number;
     time?: number;
-    poster?: boolean;
     label?: string;
   }>(),
-  { time: 0, poster: false, label: 'Mote bot' },
+  { time: 0, label: 'Mote bot' },
 );
 
 const uid = useId();
@@ -26,7 +25,7 @@ const maskId = computed(() => `mote-mask-${uid}`);
 const fillId = computed(() => `mote-fill-${uid}`);
 const textureId = computed(() => `mote-tex-${uid}`);
 
-const frame = computed(() => sample(props.poster ? posterTime(props.anim) : props.time, props.shape, props.anim));
+const frame = computed(() => sample(props.time, props.shape, props.anim));
 const texture = computed(() => TEXTURES[props.texture] ?? TEXTURES[0]);
 
 const paint = computed(() => {
@@ -184,6 +183,7 @@ const showTexture = computed(() => texture.value.marks.length > 0);
           fill="black"
           :transform="`rotate(${eye.rotate} ${eye.cx} ${eye.cy})`"
         />
+        <path :d="frame.mouth" fill="black" />
       </mask>
     </defs>
     <g v-for="(ring, index) in frame.rings" :key="`ring-${index}`" :opacity="ring.opacity">

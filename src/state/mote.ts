@@ -3,10 +3,10 @@ import { ANIMATIONS } from '../bot/animations';
 import { GRADIENTS, SOLIDS } from '../bot/palette';
 import { SHAPES } from '../bot/shapes';
 import { TEXTURES } from '../bot/textures';
-import type { Selection } from '../bot/types';
+import type { Identity, Selection } from '../bot/types';
 import { mapPayload, selectionToPayload } from '../qr/mapping';
 
-export type ViewName = 'studio' | 'scanner' | 'gallery';
+export type ViewName = 'studio' | 'scanner';
 
 const STORAGE_KEY = 'mote.selection.v1';
 
@@ -15,13 +15,19 @@ function clampIndex(value: number | undefined, length: number): number {
   return value;
 }
 
-export function clampSelection(value: Partial<Selection>): Selection {
+export function clampIdentity(value: Partial<Identity>): Identity {
   return {
     shape: clampIndex(value.shape, SHAPES.length),
     mode: value.mode === 'gradient' ? 'gradient' : 'solid',
     solid: clampIndex(value.solid, SOLIDS.length),
     gradient: clampIndex(value.gradient, GRADIENTS.length),
     texture: clampIndex(value.texture, TEXTURES.length),
+  };
+}
+
+export function clampSelection(value: Partial<Selection>): Selection {
+  return {
+    ...clampIdentity(value),
     anim: clampIndex(value.anim, ANIMATIONS.length),
   };
 }
@@ -37,7 +43,6 @@ export const mote = reactive({
   view: 'studio' as ViewName,
   shareOpen: false,
   epoch: 0,
-  freezeAt: null as number | null,
 });
 
 export function currentSelection(): Selection {
@@ -51,17 +56,20 @@ export function currentSelection(): Selection {
   };
 }
 
-export function applySelection(selection: Selection, play = true) {
-  const next = clampSelection(selection);
+export function applyIdentity(identity: Identity) {
+  const next = clampIdentity(identity);
   mote.shape = next.shape;
   mote.mode = next.mode;
   mote.solid = next.solid;
   mote.gradient = next.gradient;
   mote.texture = next.texture;
-  mote.anim = next.anim;
+}
+
+export function applySelection(selection: Selection, play = true) {
+  applyIdentity(selection);
+  mote.anim = clampIndex(selection.anim, ANIMATIONS.length);
   if (play) {
     mote.playing = true;
-    mote.freezeAt = null;
     mote.epoch += 1;
   }
 }
@@ -69,7 +77,6 @@ export function applySelection(selection: Selection, play = true) {
 export function chooseAnim(index: number) {
   mote.anim = clampIndex(index, ANIMATIONS.length);
   mote.playing = true;
-  mote.freezeAt = null;
   mote.epoch += 1;
 }
 
@@ -86,12 +93,12 @@ export function syncHashFromState() {
 
 export function readRoute() {
   const hash = hashValue();
-  if (hash === 'scanner' || hash === 'gallery') {
-    mote.view = hash;
+  if (hash === 'scanner') {
+    mote.view = 'scanner';
     return;
   }
   mote.view = 'studio';
-  if (hash.startsWith('mote1|')) applySelection(mapPayload(hash), false);
+  if (hash.startsWith('mote1|')) applyIdentity(mapPayload(hash));
 }
 
 export function go(view: ViewName) {
@@ -124,15 +131,19 @@ export function initMote() {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   loadStored();
   const hash = hashValue();
-  if (hash.startsWith('mote1|') || hash === 'scanner' || hash === 'gallery') readRoute();
+  if (hash.startsWith('mote1|') || hash === 'scanner') readRoute();
   if (reduce) mote.playing = false;
   if (!hash) syncHashFromState();
   window.addEventListener('popstate', () => readRoute());
   watch(
-    () => [mote.shape, mote.mode, mote.solid, mote.gradient, mote.texture, mote.anim],
+    () => [mote.shape, mote.mode, mote.solid, mote.gradient, mote.texture],
     () => {
       persist();
       syncHashFromState();
     },
+  );
+  watch(
+    () => mote.anim,
+    () => persist(),
   );
 }

@@ -1,10 +1,10 @@
 # Mote
 
-Mote is a morphing bot avatar you can dress and set in motion, then hand to someone else as a QR code. The same code always rebuilds the same bot: one body shape, one solid colour or gradient, one texture, and one default animation.
+Mote is a morphing bot avatar you can dress and set in motion, then hand the look to someone else as a QR code. The same code always rebuilds the same body: one shape, one solid colour or gradient, and one texture. The motion playing on screen is chosen in the studio and is not stored in the code.
 
-The picture is a single filled silhouette with two eye holes cut out of it. There is no animation library. `sample(time, shape, animation)` in `src/bot/engine.ts` is a pure function of time, so pausing, scrubbing, and the frozen gallery all draw the same frame a test would draw.
+The picture is a single filled silhouette. Eyes and a mouth are holes cut out of it. There is no animation library and no timeline editor. `sample(time, shape, animation)` in `src/bot/engine.ts` is a pure function of time, so pausing draws the same frame a test would draw. Predefined motions drive the mouth: a smile, a frown, an open gasp, a yawn, and a small resting smile in between.
 
-The visual idea — a radial profile that can morph, and eyes as mask holes — is inspired by [bloub](https://github.com/jeremy-prt/bloub) by Jérémy Perret (MIT). Mote is a separate catalogue and interface. It does not reuse that project’s measurements.
+The visual idea — a radial profile that can morph, and eyes as mask holes — is inspired by [bloub](https://github.com/jeremy-prt/bloub) by Jérémy Perret (MIT). Mote is a separate catalogue and interface. It does not reuse that project’s measurements. The mouth is original geometry in the same spirit: another hole in the mask, shaped by the current motion.
 
 Not affiliated with, endorsed by, or connected to x.ai.
 
@@ -20,7 +20,7 @@ These are real options in the UI, exported from `src/bot/catalog.ts` as `CATALOG
 | Gradients (two or more stops) | 100 | `src/bot/palette.ts` |
 | Textures | 56 | `src/bot/textures.ts` |
 
-Shapes are radial profiles (superellipses, polygons, stars, flowers, gears, blobs, asymmetric lobes, and a few symbols such as a heart or shield). Animations are predefined. There is no timeline editor.
+Shapes are radial profiles (superellipses, polygons, stars, flowers, gears, blobs, asymmetric lobes, and a few symbols such as a heart or shield). Animations are predefined.
 
 ## Run it
 
@@ -32,17 +32,18 @@ pnpm dev
 Open the URL Vite prints (usually http://localhost:5173).
 
 ```bash
-pnpm test     # catalogue counts, motion, and QR encode/decode
+pnpm test     # catalogue counts, motion, mouth, and QR encode/decode
 pnpm build    # vue-tsc and the static site in dist/
 pnpm preview  # serve dist/
 ```
 
-The interface is English only. Choices are kept in `localStorage`. A link whose hash is a `mote1|...` payload opens that bot.
+The interface is English only. Choices are kept in `localStorage`. A link whose hash is a `mote1|...` payload opens that look and leaves the current motion alone.
 
 ## QR codes
 
-- **My QR** encodes the current bot as `mote1|<shape>|<s or g>|<colour or gradient>|<texture>|<animation>`. Scanning that code restores those exact catalogue entries.
-- **Scanner** reads a code with the camera, or you can paste the decoded text. Any payload that is not a Mote code is hashed with SHA-256 and folded into catalogue indices, so the same text always yields the same bot.
+- **My QR** encodes the current look as `mote1|<shape>|<s or g>|<colour or gradient>|<texture>`. Changing the motion does not change that payload. Scanning the code restores those catalogue entries and does not apply an animation.
+- A code written by an older build may still end with an animation id. That extra field is ignored.
+- **Scanner** reads a code with the camera, or you can paste the decoded text. Any payload that is not a Mote code is hashed with SHA-256 and folded into the shape, colour mode, fill, and texture indices. The hash does not pick a motion, so the same text always yields the same look.
 
 ## GitHub Pages
 
@@ -71,7 +72,7 @@ Relative asset paths mean that branch works as a Pages source too. Do not add a 
 | --- | --- |
 | `src/bot/` | Clock-free avatar engine and catalogues. No Vue imports. |
 | `src/qr/` | SHA-256 and the payload mapping. |
-| `src/components/` | Studio, scanner, gallery, and the QR share dialog. |
+| `src/components/` | Studio, scanner, and the QR share dialog. |
 | `src/state/` | The current bot, playback clock, and hash routing. |
 
 ## License

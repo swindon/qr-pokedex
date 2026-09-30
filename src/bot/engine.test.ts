@@ -49,6 +49,10 @@ describe('sample(t)', () => {
       expect(frame.path.startsWith('M')).toBe(true);
       expect(frame.path.includes('Z')).toBe(true);
       expect(frame.eyes).toHaveLength(2);
+      expect(frame.mouth.startsWith('M')).toBe(true);
+      expect(frame.mouth.includes('Z')).toBe(true);
+      expect(Number.isFinite(frame.metrics.mouthSmile)).toBe(true);
+      expect(Number.isFinite(frame.metrics.mouthOpen)).toBe(true);
       for (const eye of frame.eyes) {
         for (const value of [eye.cx, eye.cy, eye.rx, eye.ry, eye.rotate]) {
           expect(Number.isFinite(value)).toBe(true);
@@ -71,6 +75,24 @@ describe('sample(t)', () => {
       );
       expect(keys.size, anim.name).toBeGreaterThan(1);
     }
+  });
+
+  it('lets emotions smile, frown, and open the mouth', () => {
+    const indexOf = (id: string) => {
+      const index = ANIMATIONS.findIndex((anim) => anim.id === `anim-${id}`);
+      expect(index, id).toBeGreaterThanOrEqual(0);
+      return index;
+    };
+    const happy = sample(0.3, 0, indexOf('happy'));
+    const frown = sample(0.3, 0, indexOf('frown'));
+    const gasp = sample(0.4, 0, indexOf('gasp'));
+    const yawn = sample(ANIMATIONS[indexOf('yawn')].duration * 0.5, 0, indexOf('yawn'));
+    expect(happy.metrics.mouthSmile).toBeGreaterThan(0.5);
+    expect(frown.metrics.mouthSmile).toBeLessThan(-0.5);
+    expect(happy.metrics.mouthSmile).toBeGreaterThan(frown.metrics.mouthSmile);
+    expect(gasp.metrics.mouthOpen).toBeGreaterThan(0.8);
+    expect(yawn.metrics.mouthOpen).toBeGreaterThan(0.7);
+    expect(happy.mouth).not.toBe(frown.mouth);
   });
 
   it('keeps animation fingerprints unique', () => {

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import QRCode from 'qrcode';
 import { computed, ref, watch } from 'vue';
-import { describeSelection, selectionToPayload } from '../qr/mapping';
+import { describeIdentity, selectionToPayload } from '../qr/mapping';
 import { currentSelection, mote } from '../state/mote';
 
 const dataUrl = ref('');
 const note = ref('');
 const payload = computed(() => selectionToPayload(currentSelection()));
-const summary = computed(() => describeSelection(currentSelection()));
+const summary = computed(() => describeIdentity(currentSelection()));
 const pageLink = computed(() => {
   const url = new URL(window.location.href);
   url.hash = payload.value;
@@ -66,7 +66,9 @@ function close() {
       <div class="flex items-start justify-between gap-4">
         <div>
           <h2 id="share-title" class="font-serif text-2xl">My QR</h2>
-          <p class="mt-1 text-sm text-muted">Anyone who scans this code gets this exact bot.</p>
+          <p class="mt-1 text-sm text-muted">
+            Anyone who scans this code gets this shape, colour, and texture. Motion is not part of the code.
+          </p>
         </div>
         <button type="button" class="rounded-full px-3 py-1 text-sm text-muted hover:bg-paper" @click="close">
           Close

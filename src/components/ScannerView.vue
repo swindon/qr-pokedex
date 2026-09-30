@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import jsQR from 'jsqr';
 import { computed, onUnmounted, ref } from 'vue';
-import { describeSelection, mapPayload } from '../qr/mapping';
-import type { Selection } from '../bot/types';
-import { applySelection, go } from '../state/mote';
+import { describeIdentity, mapPayload } from '../qr/mapping';
+import type { Identity } from '../bot/types';
+import { applyIdentity, go, mote } from '../state/mote';
 import { useClock } from '../state/clock';
 import BotAvatar from './BotAvatar.vue';
 
@@ -11,7 +11,7 @@ const videoRef = ref<HTMLVideoElement | null>(null);
 const pasted = ref('');
 const status = ref('Paste a decoded payload, or start the camera and point it at a code.');
 const error = ref('');
-const found = ref<Selection | null>(null);
+const found = ref<Identity | null>(null);
 const foundText = ref('');
 const scanning = ref(false);
 const playing = ref(true);
@@ -23,7 +23,7 @@ let frame = 0;
 const canvas = document.createElement('canvas');
 const context = canvas.getContext('2d', { willReadFrequently: true });
 
-const summary = computed(() => (found.value ? describeSelection(found.value) : ''));
+const summary = computed(() => (found.value ? describeIdentity(found.value) : ''));
 
 function accept(text: string) {
   const trimmed = text.trim();
@@ -34,7 +34,7 @@ function accept(text: string) {
   foundText.value = trimmed;
   found.value = mapPayload(trimmed);
   epoch.value += 1;
-  status.value = 'This code maps to one bot. Use it, or scan another.';
+  status.value = 'This code sets the shape, colour, and texture. Motion stays as it is.';
   error.value = '';
   stopCamera();
 }
@@ -45,7 +45,7 @@ function applyPaste() {
 
 function useBot() {
   if (!found.value) return;
-  applySelection(found.value, true);
+  applyIdentity(found.value);
   go('studio');
 }
 
@@ -109,12 +109,12 @@ onUnmounted(stopCamera);
 </script>
 
 <template>
-  <div class="grid gap-6 lg:grid-cols-2">
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
     <section class="rounded-3xl border border-line bg-card p-4">
       <h2 class="font-serif text-3xl">Scan a code</h2>
       <p class="mt-2 text-sm text-muted">
-        Point the camera at a QR code, or paste the text it contains. The same payload always rebuilds the same bot.
-        A Mote code restores that exact combination. Any other text is hashed into the catalogue.
+        Point the camera at a QR code, or paste the text it contains. The same payload always rebuilds the same
+        shape, colour, and texture. It does not change the motion you are playing.
       </p>
       <div class="mt-4 overflow-hidden rounded-2xl bg-ink">
         <video ref="videoRef" class="aspect-video w-full object-cover" autoplay muted playsinline />
@@ -153,7 +153,7 @@ onUnmounted(stopCamera);
             :solid="found.solid"
             :gradient="found.gradient"
             :texture="found.texture"
-            :anim="found.anim"
+            :anim="mote.anim"
             :time="time"
             :label="summary"
           />
